@@ -1,6 +1,9 @@
+import cv2
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+
+import warpImages
 
 imagePath = './data/opencv-stitching/'
 imageNames = ['boat1.jpg', 'boat2.jpg']
@@ -72,11 +75,14 @@ if len(good) > MIN_MATCH_COUNT:
     src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
     M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
+    result = warpImages.warp_images(img2, img1, M)
+
+    #Get poly-lines
     matchesMask = mask.ravel().tolist()
     h, w = img1.shape[:-1]
     pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
     dst = cv.perspectiveTransform(pts, M)
-    img2 = cv.polylines(img2, [np.int32(dst)], True, 255, 3, cv.LINE_AA)
+    img2_poly_lines = cv.polylines(img2, [np.int32(dst)], True, 255, 3, cv.LINE_AA)
 else:
     print("Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT))
     matchesMask = None
@@ -86,8 +92,11 @@ draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
                    singlePointColor=None,
                    matchesMask=matchesMask,  # draw only inliers
                    flags=2)
-img3 = cv.drawMatches(img1, kp1, img2, kp2, good, None, **draw_params)
-plt.imshow(img3, 'gray'), plt.show()
+img3 = cv.drawMatches(img1, kp1, img2_poly_lines, kp2, good, None, **draw_params)
+#plt.imshow(img3, 'gray'), plt.show()
 
 img = cv.drawKeypoints(gray1, kp1, img1, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-cv.imwrite('sift_keypoints.jpg', img)
+
+cv.imwrite('sift_keypoints.png', img)
+cv.imwrite('matches.png', img3)
+cv.imwrite('stitched.png', result)
