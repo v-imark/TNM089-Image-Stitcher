@@ -40,6 +40,8 @@ base_des = keypoints_and_descriptors[0].get("des")
 print("Progress:", str(1) + " / " + str(len(images)))
 
 MIN_MATCH_COUNT = 10
+warped_images = []
+width, height = base.shape[1], base.shape[0]
 
 for i in range(1, len(images)):
     curr_kp = keypoints_and_descriptors[i].get("kp")
@@ -61,15 +63,20 @@ for i in range(1, len(images)):
     if len(good) > MIN_MATCH_COUNT:
         src_pts = np.float32([base_kp[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
         dst_pts = np.float32([curr_kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-        M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
-        base = warpImages.warp_images(images[i], base, M)
+        H, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
+        #base = warpImages.warp_images(images[i], base, H)
 
+        warped = cv2.warpPerspective(images[i], H, (width, height))
+        warped_images.append(warped)
         print("Progress:", str(i + 1) + " / " + str(len(images)))
-
-        if i < len(images) - 1:
-            base_kp, base_des = sift.detectAndCompute(base, None)
+        base = images[i]
+        base_kp = curr_kp
+        base_des = curr_des
     else:
         print("Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT))
 
+result = images[0]
+for image in warped_images:
+    result = cv.addWeighted(result, 1, image, 1, 0)
 
-cv.imwrite('result.png', base)
+cv.imwrite('result.png', result)
