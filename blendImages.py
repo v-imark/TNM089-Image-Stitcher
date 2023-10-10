@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import imutils
 
+debugCircles = False
 
 def blend_images(warped_image_1, warped_image_2):
 
@@ -28,8 +29,9 @@ def blend_images(warped_image_1, warped_image_2):
     print("average_position_2: ", average_position_2)
 
     # make green circle at average position of white pixels
-    cv2.circle(warped_image_1, (int(average_position_1[0]), int(average_position_1[1])), 10, (0, 255, 0), -1)
-    cv2.circle(warped_image_2, (int(average_position_2[0]), int(average_position_2[1])), 10, (0, 255, 0), -1)
+    if debugCircles:
+        cv2.circle(warped_image_1, (int(average_position_1[0]), int(average_position_1[1])), 10, (0, 255, 0), -1)
+        cv2.circle(warped_image_2, (int(average_position_2[0]), int(average_position_2[1])), 10, (0, 255, 0), -1)
 
     # get direction vector from average_position_1 to average_position_2
     gradient_direction = average_position_1 - average_position_2
@@ -69,4 +71,4 @@ def blend_images(warped_image_1, warped_image_2):
     print("Blending finished")
 
     result = compiled_image
-    return result, 255* blending_function, 255 * gradient, overlap_mask
+    return result, 255 * blending_function, 255 * gradient, overlap_mask

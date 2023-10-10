@@ -105,21 +105,34 @@ def warp_images(img1, img2, H):
     t = [-xmin, -ymin]
     Ht = np.array([[1, 0, t[0]], [0, 1, t[1]], [0, 0, 1]])
 
+    warped_img1 = cv2.warpPerspective(img2, Ht @ H, (xmax - xmin, ymax - ymin))
     warped_img2 = cv2.warpPerspective(img2, Ht @ H, (xmax - xmin, ymax - ymin))
     warped_img2[t[1]:h1 + t[1], t[0]:w1 + t[0]] = img1
+    warped_img = warped_img2
 
-    return warped_img2
+    # create partitions for blending function
+    partition_1 = cv2.warpPerspective(img2, Ht @ H, (xmax - xmin, ymax - ymin))
+    partition_2 = np.zeros(partition_1.shape)
+    partition_2 = partition_2.astype(partition_1.dtype)
+    partition_2[t[1]:h1 + t[1], t[0]:w1 + t[0]] = img1
 
+    return warped_img, partition_1, partition_2
+
+import blendImages
 
 def stitch_two_images(img1, img2):
+    print("stitching two images")
     keypoints1, keypoints2, matches, good, _ = detect_and_match_features(img1, img2)
     H, mask = estimate_homography(keypoints1, keypoints2, good)
-    warped_img = warp_images(img2, img1, H)
+    warped_img, partition_1, partition_2 = warp_images(img2, img1, H)
+    print("warping done")
 
-    return warped_img
+    result, blending_function, gradient, overlap_mask = blendImages.blend_images(partition_1, partition_2)
+
+    return result
 
 
-def blend_images(img1, img2):
-    mask = np.where(img1 != 0, 1, 0).astype(np.float32)
-    blended_img = img1 * mask + img2 * (1 - mask)
-    return blended_img.astype(np.uint8)
+#def blend_images(img1, img2):
+#    mask = np.where(img1 != 0, 1, 0).astype(np.float32)
+#    blended_img = img1 * mask + img2 * (1 - mask)
+#    return blended_img.astype(np.uint8)
