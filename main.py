@@ -1,102 +1,51 @@
 import cv2
-import numpy as np
-import cv2 as cv
-import matplotlib.pyplot as plt
 
-import warpImages
+from stitcher_utils import estimate_homography, warp_images, blend_images, detect_and_match_features, draw_matches, draw_inliers, \
+    stitch_two_images
 
 imagePath = './data/opencv-stitching/'
-imageNames = ['boat1.jpg', 'boat2.jpg']
-img1 = cv.imread(imagePath + imageNames[0])
-img2 = cv.imread(imagePath + imageNames[1])
 
-# Img to gray img
-gray1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
-gray2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
+# Boat
+img1 = cv2.imread(imagePath + 'boat1.jpg')
+img2 = cv2.imread(imagePath + 'boat2.jpg')
 
-# Initialize SIFT detector
-sift = cv.SIFT_create()
+# Feature extraction and matching
+keypoints1, keypoints2, matches, good, matchedMask = detect_and_match_features(img1, img2)
 
-# Find the keypoints and descriptors with SIFT
-kp1, des1 = sift.detectAndCompute(img1, None)
-kp2, des2 = sift.detectAndCompute(img2, None)
+# Draw keypoints on first pic and draw matches
+kp_img = cv2.drawKeypoints(img1, keypoints1, None, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+cv2.imwrite('sift_keypoints.png', kp_img)
+draw_matches(img1, img2, keypoints1, keypoints2, matches, matchedMask, filename="flann")
+#draw_matches(img1, img2, keypoints1, keypoints2, good, matchedMask, filename="flann_good")
 
-# BFMatcher with default params (Brute-Force-Matcher)
-bf = cv.BFMatcher()
-matches = bf.knnMatch(des1, des2, k=2)
+# Estimate homography with the good matches
+H, mask = estimate_homography(keypoints1, keypoints2, good)
 
-# Apply ratio test (Find best matches)
-goodBF = []
-for m, n in matches:
-    if m.distance < 0.75 * n.distance:
-        goodBF.append([m])
+#Draw inliers
+draw_inliers(img1, img2, keypoints1, keypoints2, good, mask, filename="boat_inliers.png")
 
-# cv.drawMatchesKnn expects list of lists as matches.
-#img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-#plt.imshow(img3), plt.show()
+warped_img = warp_images(img2, img1, H)
 
-# FLANN Matcher
-FLANN_INDEX_KDTREE = 1
-index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-search_params = dict(checks=50)  # or pass empty dictionary
-flann = cv.FlannBasedMatcher(index_params, search_params)
-matches = flann.knnMatch(des1, des2, k=2)
+cv2.imwrite('boat_two_images.png', warped_img)
 
-# Need to draw only good matches, so create a mask
-matchesMask = [[0, 0] for i in range(len(matches))]
+# Boat 3 images
+img3 = cv2.imread(imagePath + 'boat3.jpg')
+temp_img = stitch_two_images(img1, img3)
+cv2.imwrite('temp.png', temp_img)
 
-# ratio test as per Lowe's paper
-for i, (m, n) in enumerate(matches):
-    if m.distance < 0.7 * n.distance:
-        matchesMask[i] = [1, 0]
+temp_img = cv2.imread('temp.png')
+warped_img = stitch_two_images(temp_img, img2)
+cv2.imwrite('boat_three_images.png', warped_img)
 
-# store all the good matches as per Lowe's ratio test.
-good = []
-for m,n in matches:
-    if m.distance < 0.7*n.distance:
-        good.append(m)
+# Church 3 images
+img1 = cv2.imread(imagePath + 'a1.png')
+img2 = cv2.imread(imagePath + 'a2.png')
+img3 = cv2.imread(imagePath + 'a3.png')
 
-draw_params = dict(matchColor=(0, 255, 0),
-                   singlePointColor=(255, 0, 0),
-                   matchesMask=matchesMask,
-                   flags=cv.DrawMatchesFlags_DEFAULT)
+temp_img = stitch_two_images(img1, img3)
+cv2.imwrite('temp.png', temp_img)
 
-# Plot Flann-matches
-#img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, matches, None, **draw_params)
-#plt.imshow(img3, ), plt.show()
+temp_img = cv2.imread('temp.png')
+warped_img = stitch_two_images(temp_img, img2)
+cv2.imwrite('church_three_images.png', warped_img)
 
-MIN_MATCH_COUNT = 10
-
-# If enough matches are found, we extract the locations of matched keypoints in both the images.
-# They are passed to find the perspective transformation.
-# Once we get this 3x3 transformation matrix,
-# we use it to transform the corners of queryImage to corresponding points in trainImage. Then we draw it.
-if len(good) > MIN_MATCH_COUNT:
-    src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-    M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
-    result = warpImages.warp_images(img2, img1, M)
-
-    #Get poly-lines
-    matchesMask = mask.ravel().tolist()
-    h, w = img1.shape[:-1]
-    pts = np.float32([[0, 0], [0, h - 1], [w - 1, h - 1], [w - 1, 0]]).reshape(-1, 1, 2)
-    dst = cv.perspectiveTransform(pts, M)
-    img2_poly_lines = cv.polylines(img2, [np.int32(dst)], True, 255, 3, cv.LINE_AA)
-else:
-    print("Not enough matches are found - {}/{}".format(len(good), MIN_MATCH_COUNT))
-    matchesMask = None
-
-# Draw inliers
-draw_params = dict(matchColor=(0, 255, 0),  # draw matches in green color
-                   singlePointColor=None,
-                   matchesMask=matchesMask,  # draw only inliers
-                   flags=2)
-img3 = cv.drawMatches(img1, kp1, img2_poly_lines, kp2, good, None, **draw_params)
-#plt.imshow(img3, 'gray'), plt.show()
-
-img = cv.drawKeypoints(gray1, kp1, img1, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-cv.imwrite('sift_keypoints.png', img)
-cv.imwrite('matches.png', img3)
-cv.imwrite('stitched.png', result)
