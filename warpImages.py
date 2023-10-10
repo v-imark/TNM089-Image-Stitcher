@@ -20,4 +20,4 @@ def warp_images(img1, img2, H):
     warped_img2 = cv2.warpPerspective(img2, Ht @ H, (xmax - xmin, ymax - ymin))
     warped_img2[t[1]:h1 + t[1], t[0]:w1 + t[0]] = img1
 
-    return warped_img2
+    return warped_image_1, warped_image_2

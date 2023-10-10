@@ -1,7 +1,8 @@
 import cv2
 
-from stitcher_utils import estimate_homography, warp_images, blend_images, detect_and_match_features, draw_matches, draw_inliers, \
+from stitcher_utils import estimate_homography, warp_images, detect_and_match_features, draw_matches, draw_inliers, \
     stitch_two_images
+import blendImages
 
 imagePath = './data/opencv-stitching/'
 
@@ -26,12 +27,13 @@ draw_inliers(img1, img2, keypoints1, keypoints2, good, mask, filename="boat_inli
 
 warped_img = warp_images(img2, img1, H)
 
-cv2.imwrite('boat_two_images.png', warped_img)
+cv2.imwrite('boat_two_images.png', warped_img[0])
 
 # Boat 3 images
 img3 = cv2.imread(imagePath + 'boat3.jpg')
 temp_img = stitch_two_images(img1, img3)
 cv2.imwrite('temp.png', temp_img)
+cv2.imwrite('boat_two_temp.png', temp_img)
 
 temp_img = cv2.imread('temp.png')
 warped_img = stitch_two_images(temp_img, img2)
