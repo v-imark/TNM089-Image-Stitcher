@@ -22,8 +22,15 @@ def warp_images(img2, img1, H):
 
     H_translation = np.array([[1, 0, translation_dist[0]], [0, 1, translation_dist[1]], [0, 0, 1]])
 
-    output_img = cv2.warpPerspective(img1, H_translation.dot(H), (x_max - x_min, y_max - y_min))
+    #Output two warped images
+    warped_image_1 = cv2.warpPerspective(img1, H_translation.dot(H), (x_max - x_min, y_max - y_min))
+    print("type of warped_image_1")
+    print(type(warped_image_1))
 
-    output_img[translation_dist[1]:rows1 + translation_dist[1], translation_dist[0]:cols1 + translation_dist[0]] = img2
+    warped_image_2 = warped_image_1.copy()
+    warped_image_2 = np.zeros((warped_image_1.shape))
+    #make warped_image_2 the same type as warped_image_1
+    warped_image_2 = warped_image_2.astype(warped_image_1.dtype)
+    warped_image_2[translation_dist[1]:rows1 + translation_dist[1], translation_dist[0]:cols1 + translation_dist[0]] = img2
 
-    return output_img
+    return warped_image_1, warped_image_2

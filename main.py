@@ -4,6 +4,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 
 import warpImages
+import blendImages
 
 imagePath = './data/opencv-stitching/'
 imageNames = ['boat1.jpg', 'boat2.jpg']
@@ -75,7 +76,8 @@ if len(good) > MIN_MATCH_COUNT:
     src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
     M, mask = cv.findHomography(src_pts, dst_pts, cv.RANSAC, 5.0)
-    result = warpImages.warp_images(img2, img1, M)
+    warped_image_1, warped_image_2 = warpImages.warp_images(img2, img1, M)
+    result, blending_function, gradient, overlap_mask = blendImages.blend_images(warped_image_1, warped_image_2)
 
     #Get poly-lines
     matchesMask = mask.ravel().tolist()
@@ -100,3 +102,6 @@ img = cv.drawKeypoints(gray1, kp1, img1, flags=cv.DRAW_MATCHES_FLAGS_DRAW_RICH_K
 cv.imwrite('sift_keypoints.png', img)
 cv.imwrite('matches.png', img3)
 cv.imwrite('stitched.png', result)
+cv.imwrite('blending_function.png', blending_function)
+cv.imwrite('gradient.png', gradient)
+cv.imwrite('overlap_mask.png', overlap_mask)
