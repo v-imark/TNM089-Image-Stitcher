@@ -1,44 +1,34 @@
 import cv2
+import PIL
+import imutils
+from PIL import Image
+from PIL import ImageOps
 
-from stitcher_utils import estimate_homography, warp_images, blend_images, detect_and_match_features
+from stitcher_utils import stitcher
 
 imagePath = './data/opencv-stitching/'
 
 # Boat
 img1 = cv2.imread(imagePath + 'boat1.jpg')
-img2 = cv2.imread(imagePath + 'boat3.jpg')
-
-keypoints1, keypoints2, matches, _ = detect_and_match_features(img1, img2)
-H, mask = estimate_homography(keypoints1, keypoints2, matches)
-warped_img = warp_images(img2, img1, H)
-cv2.imwrite('output.png', warped_img)
-
-img1 = cv2.imread('output.png')
 img2 = cv2.imread(imagePath + 'boat2.jpg')
+img3 = cv2.imread(imagePath + 'boat3.jpg')
+img4 = cv2.imread(imagePath + 'boat4.jpg')
+img5 = cv2.imread(imagePath + 'boat5.jpg')
 
-keypoints1, keypoints2, matches, _ = detect_and_match_features(img1, img2)
-H, mask = estimate_homography(keypoints1, keypoints2, matches)
-warped_img = warp_images(img2, img1, H)
-cv2.imwrite('output2.png', warped_img)
+imgs = [img1, img2, img3, img4]
+for i, img in enumerate(imgs):
+    imgs[i] = cv2.resize(img, (int(img.shape[1] / 4), int(img.shape[0] / 4)))
 
-# Church
+#result = stitcher([imgs[0], imgs[1], imgs[2]])
+#cv2.imwrite('stitcher_result_3.png', result)
+#result = stitcher(imgs)
+#cv2.imwrite('stitcher_result_4.png', result)
+
+# Church 3 images
 img1 = cv2.imread(imagePath + 'a1.png')
-img2 = cv2.imread(imagePath + 'a3.png')
-
-keypoints1, keypoints2, matches, _ = detect_and_match_features(img1, img2)
-H, mask = estimate_homography(keypoints1, keypoints2, matches)
-warped_img = warp_images(img2, img1, H)
-cv2.imwrite('output.png', warped_img)
-
-img1 = cv2.imread('output.png')
 img2 = cv2.imread(imagePath + 'a2.png')
+img3 = cv2.imread(imagePath + 'a3.png')
 
-keypoints1, keypoints2, matches, _ = detect_and_match_features(img1, img2)
-H, mask = estimate_homography(keypoints1, keypoints2, matches)
-warped_img = warp_images(img2, img1, H)
-cv2.imwrite('output3.png', warped_img)
-
-
-
-
-
+imgs = [img1, img2, img3]
+result = stitcher(imgs)
+cv2.imwrite('stitcher_church_result.png', result)

@@ -1,5 +1,10 @@
+import math
+
 import cv2
+import imutils
 import numpy as np
+
+import blendImages
 
 
 def detect_and_match_features(img1, img2, fe_algo="sift", match_algo="flann"):
@@ -118,21 +123,46 @@ def warp_images(img1, img2, H):
 
     return warped_img, partition_1, partition_2
 
-import blendImages
 
 def stitch_two_images(img1, img2):
-    print("stitching two images")
+    print("Stitching two images")
     keypoints1, keypoints2, matches, good, _ = detect_and_match_features(img1, img2)
     H, mask = estimate_homography(keypoints1, keypoints2, good)
     warped_img, partition_1, partition_2 = warp_images(img2, img1, H)
-    print("warping done")
+    print("Warping done")
 
     result, blending_function, gradient, overlap_mask = blendImages.blend_images(partition_1, partition_2)
 
     return result
 
 
-#def blend_images(img1, img2):
-#    mask = np.where(img1 != 0, 1, 0).astype(np.float32)
-#    blended_img = img1 * mask + img2 * (1 - mask)
-#    return blended_img.astype(np.uint8)
+def resize_and_pad(img, w, h):
+    #middle = imutils.resize(img, width=int(img.shape[1] * 1.2))
+    hor = int((w / 2 - img.shape[1] / 2))
+    vert = int((h / 2 - img.shape[0] / 2))
+    middle = cv2.copyMakeBorder(img, vert, vert, hor, hor, 0)
+    return middle
+
+
+def stitcher(imgs):
+    temp_img = imgs[0]
+    for i in range(1, len(imgs)):
+        if i == len(imgs):
+            break
+
+        temp_img = stitch_two_images(temp_img, imgs[i])
+        temp_img = cv2.normalize(temp_img, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
+
+    cv2.imwrite("img_before_rotate.png", temp_img)
+    img1 = temp_img
+
+    middle_index = math.floor(len(imgs) / 2)
+    img2 = resize_and_pad(imgs[middle_index], img1.shape[1], img1.shape[0])
+    cv2.imwrite("padded_image.png", img2)
+
+    keypoints1, keypoints2, matches, good, _ = detect_and_match_features(img1, img2)
+    H, _ = estimate_homography(keypoints1, keypoints2, good)
+    width, height = img2.shape[1], img2.shape[0]
+    result = cv2.warpPerspective(img1, H, (width, height))
+
+    return result
