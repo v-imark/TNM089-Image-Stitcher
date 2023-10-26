@@ -137,7 +137,7 @@ def stitch_two_images(img1, img2):
 
 
 def resize_and_pad(img, w, h):
-    #middle = imutils.resize(img, width=int(img.shape[1] * 1.2))
+    # middle = imutils.resize(img, width=int(img.shape[1] * 1.2))
     hor = int((w / 2 - img.shape[1] / 2))
     vert = int((h / 2 - img.shape[0] / 2))
     middle = cv2.copyMakeBorder(img, vert, vert, hor, hor, 0)
@@ -153,12 +153,11 @@ def stitcher(imgs):
         temp_img = stitch_two_images(temp_img, imgs[i])
         temp_img = cv2.normalize(temp_img, None, 0, 255, cv2.NORM_MINMAX).astype('uint8')
 
-    cv2.imwrite("img_before_rotate.png", temp_img)
+    cv2.imwrite("output/img_before_rotate.png", temp_img)
     img1 = temp_img
 
     middle_index = math.floor(len(imgs) / 2)
     img2 = resize_and_pad(imgs[middle_index], img1.shape[1], img1.shape[0])
-    cv2.imwrite("padded_image.png", img2)
 
     keypoints1, keypoints2, matches, good, _ = detect_and_match_features(img1, img2)
     H, _ = estimate_homography(keypoints1, keypoints2, good)

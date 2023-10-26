@@ -4,8 +4,8 @@ import imutils
 
 debugCircles = False
 
-def blend_images(warped_image_1, warped_image_2):
 
+def blend_images(warped_image_1, warped_image_2):
     print("Start blending")
 
     # create masks for images
@@ -23,7 +23,7 @@ def blend_images(warped_image_1, warped_image_2):
     white_pixels2 = np.where(threshhold2 == 255)
     average_position_1 = np.flip(np.average(white_pixels1, axis=1))
     average_position_2 = np.flip(np.average(white_pixels2, axis=1))
-    #average_position_1 = [average_position_1[0], average_position_1[1] + 1000]
+    # average_position_1 = [average_position_1[0], average_position_1[1] + 1000]
 
     print("average_position_1: ", average_position_1)
     print("average_position_2: ", average_position_2)
@@ -35,14 +35,14 @@ def blend_images(warped_image_1, warped_image_2):
 
     # get direction vector from average_position_1 to average_position_2
     gradient_direction = average_position_1 - average_position_2
-    gradient_direction = gradient_direction / np.linalg.norm(gradient_direction) # doesnt matter
+    gradient_direction = gradient_direction / np.linalg.norm(gradient_direction)  # doesnt matter
 
     # generate 2d image with a smooth linear gradient in the direction of the "gradient_direction" vector
     gradient = np.zeros((warped_image_1.shape[0], warped_image_1.shape[1]), dtype=np.float32)
     for i in range(gradient.shape[0]):
         for j in range(gradient.shape[1]):
             gradient[i, j] = np.dot([j, i], gradient_direction)
-    
+
     # remap values of blending function to range [0, 1]
     gradient = gradient - gradient.min()
     gradient = gradient / gradient.max()
@@ -64,7 +64,7 @@ def blend_images(warped_image_1, warped_image_2):
     # mask warped_image_1 with overlap_mask
     compiled_image = warped_image_1 * ((255 - overlap_mask) / 255)
     compiled_image += warped_image_2 * ((255 - overlap_mask) / 255)
-    
+
     compiled_image += warped_image_1 * blending_function * (overlap_mask / 255)
     compiled_image += warped_image_2 * (1 - blending_function) * (overlap_mask / 255)
 

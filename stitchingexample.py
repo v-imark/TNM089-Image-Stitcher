@@ -26,5 +26,5 @@ else:
     print('Your Panorama is ready!!!')
 
 # final output
-cv2.imwrite("opencv_boat_4.png", output)
+cv2.imwrite("output/opencv_boat_4.png", output)
 
